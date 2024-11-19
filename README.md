@@ -1,4 +1,4 @@
-# Obsidian Folder Link
+# Folder Link Plugin for Obsidian
 
 Have you ever wanted to link to a folder? This plugin adds a frequently requested feature to Obsidian.
 
