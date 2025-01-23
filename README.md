@@ -9,12 +9,13 @@ Have you ever wanted to link to a folder? This plugin adds a frequently requeste
 
 ## How to use
 
-Add a `/` add the end of a regular internal link. If the folder exists it will be revealeled.
+Add a `/` at the end of a regular internal link. If the folder exists it will be revealed.
 
 **Warning:** Renaming or moving a folder you already linked won't update those folder links (for now).
 
 ```markdown
 [[MyFolder/]]
+[[MyFolder/MySubfolder/]]
 ```
 
 ## Roadmap
