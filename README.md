@@ -5,7 +5,7 @@ Have you ever wanted to link to a folder? This plugin adds a frequently requeste
 **Features:**
 
 -   Click on Folder Link reveals folder in navigation
--   Folder Links styling behaves like regular internal links in Reading Mode (resolved/unresolved)
+-   Folder Links styling behaves like regular internal links (resolved/unresolved)
 
 ## How to use
 
