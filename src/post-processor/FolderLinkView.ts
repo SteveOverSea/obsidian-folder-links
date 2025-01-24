@@ -1,62 +1,23 @@
-import { IFilesCorePlugin } from "src/main";
-import { App, MarkdownRenderChild, TFolder } from "obsidian";
-
-type IFolderWrapper = {
-	raw: TFolder[];
-	asPathes: string[];
-};
+import { MarkdownRenderChild } from "obsidian";
+import { RESOLVED_LINK_CLASS, UNRESOLVED_LINK_CLASS } from "../constants";
+import { IFilesCorePlugin, IFolderWrapper } from "../types";
 
 export class FolderLinkView extends MarkdownRenderChild {
-	static app: App;
 	static filesCorePlugin: IFilesCorePlugin;
 	static folders: IFolderWrapper;
 
 	constructor(
 		container: HTMLElement,
 		private targets: HTMLElement[],
-		app?: App,
-		filesCorePlugin?: IFilesCorePlugin
+		filesCorePlugin: IFilesCorePlugin
 	) {
 		super(container);
 		if (!FolderLinkView.filesCorePlugin && filesCorePlugin) {
 			FolderLinkView.filesCorePlugin = filesCorePlugin;
 		}
-		if (!FolderLinkView.app && app) {
-			FolderLinkView.app = app;
-		}
-	}
-
-	loadFolders() {
-		const allFolders = FolderLinkView.app.vault.getAllFolders();
-		FolderLinkView.folders = {
-			raw: allFolders,
-			asPathes: allFolders.map((f) => f.path),
-		};
-
-		this.render();
 	}
 
 	onload(): void {
-		this.registerEvent(
-			FolderLinkView.app.vault.on("create", () => {
-				this.loadFolders();
-			})
-		);
-
-		// "rename" also handles moving folders
-		this.registerEvent(
-			FolderLinkView.app.vault.on("rename", () => {
-				this.loadFolders();
-			})
-		);
-
-		this.registerEvent(
-			FolderLinkView.app.vault.on("delete", () => {
-				this.loadFolders();
-			})
-		);
-
-		this.loadFolders();
 		this.render();
 	}
 
@@ -76,8 +37,8 @@ export class FolderLinkView extends MarkdownRenderChild {
 			);
 
 			if (FolderLinkView.folders.asPathes.includes(folderPath)) {
-				target.addClass("is-resolved");
-				target.removeClass("is-unresolved");
+				target.addClass(RESOLVED_LINK_CLASS);
+				target.removeClass(UNRESOLVED_LINK_CLASS);
 
 				this.registerDomEvent(target, "click", () => {
 					FolderLinkView.filesCorePlugin.view.revealInFolder(
@@ -87,8 +48,8 @@ export class FolderLinkView extends MarkdownRenderChild {
 					);
 				});
 			} else {
-				target.addClass("is-unresolved");
-				target.removeClass("is-resolved");
+				target.addClass(UNRESOLVED_LINK_CLASS);
+				target.removeClass(RESOLVED_LINK_CLASS);
 			}
 		});
 	}

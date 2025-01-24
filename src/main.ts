@@ -1,55 +1,88 @@
-import { FolderLinkView } from "src/FolderLinkView";
-import { Plugin, TFolder, View, WorkspaceLeaf } from "obsidian";
-
-interface IFilesCorePluginView extends View {
-	revealInFolder: (folder: TFolder) => void;
-}
-
-export interface IFilesCorePlugin extends WorkspaceLeaf {
-	view: IFilesCorePluginView;
-}
+import { MarkdownView, Plugin } from "obsidian";
+import { folderLinksPlugin } from "./editor-extension/CMFolderLinkPlugin";
+import { IFilesCorePlugin, IFolderWrapper } from "./types";
+import { folderLinkPostProcessor } from "./post-processor/FolderLinkPostProcessor";
+import { debounce, getMarkdownLeaves, loadFolders } from "./util";
+import { EditorView } from "@codemirror/view";
+import { folderField, updateEffect } from "./editor-extension/FolderStateField";
+import { Observable } from "zen-observable-ts";
 
 export default class FolderLinksPlugin extends Plugin {
 	filesCorePlugin: IFilesCorePlugin;
-
-	init() {
-		// this only handles reading mode
-		this.registerMarkdownPostProcessor((element, context) => {
-			if (!this.filesCorePlugin) {
-				return;
-			}
-			const folderLinks = element
-				.findAll(".internal-link")
-				.filter((el) => el.textContent && el.textContent.endsWith("/"));
-			if (folderLinks) {
-				const child = new FolderLinkView(
-					element,
-					folderLinks,
-					this.app,
-					this.filesCorePlugin
-				);
-				context.addChild(child);
-			}
-		});
-	}
+	folderObservable: Observable<IFolderWrapper>;
 
 	async onload() {
 		this.app.workspace.onLayoutReady(() => {
-			const fileExplorerPlugins =
-				this.app.workspace.getLeavesOfType("file-explorer");
+			this.filesCorePlugin = this.getInternalFileExlorerPlugin();
 
-			if (fileExplorerPlugins.length === 0) {
-				// TODO add error message
-				return;
-			} else if (fileExplorerPlugins.length > 1) {
-				// TODO add error message;
-				return;
-			}
-			this.filesCorePlugin = this.app.workspace.getLeavesOfType(
-				"file-explorer"
-			)[0] as IFilesCorePlugin;
+			this.folderObservable = debounce(
+				new Observable((observer) => {
+					observer.next(loadFolders(this.app));
+
+					this.registerEvent(
+						this.app.vault.on("create", () => {
+							observer.next(loadFolders(this.app));
+						})
+					);
+
+					this.registerEvent(
+						this.app.vault.on("rename", () => {
+							observer.next(loadFolders(this.app));
+						})
+					);
+
+					this.registerEvent(
+						this.app.vault.on("delete", () => {
+							observer.next(loadFolders(this.app));
+						})
+					);
+				}),
+				50
+			);
 
 			this.init();
 		});
+	}
+
+	updateEditorState(folders: IFolderWrapper) {
+		const markdownViews = getMarkdownLeaves(this.app);
+		for (const markdownView of markdownViews) {
+			const editorView = (
+				(markdownView.view as MarkdownView).editor as any
+			).cm as EditorView;
+			editorView.dispatch({
+				effects: [updateEffect.of(folders)],
+			});
+		}
+	}
+
+	getInternalFileExlorerPlugin() {
+		const fileExplorerPlugins =
+			this.app.workspace.getLeavesOfType("file-explorer");
+
+		if (fileExplorerPlugins.length !== 1) {
+			throw new Error("Could not load file explorer plugin.");
+		}
+
+		return this.app.workspace.getLeavesOfType(
+			"file-explorer"
+		)[0] as IFilesCorePlugin;
+	}
+
+	init() {
+		this.folderObservable.subscribe((folders) => {
+			this.updateEditorState(folders);
+		});
+
+		// reading mode
+		this.registerMarkdownPostProcessor(
+			folderLinkPostProcessor(this.folderObservable, this.filesCorePlugin)
+		);
+
+		// live preview
+		this.registerEditorExtension([
+			folderLinksPlugin(this.filesCorePlugin),
+			folderField,
+		]);
 	}
 }

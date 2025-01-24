@@ -21,9 +21,7 @@ Add a `/` add the end of a regular internal link. If the folder exists it will b
 
 (ordering is random)
 
--   Live Preview / Source Mode support
-    -   resolved/unresolved styling
-    -   folder suggestion box
+-   Folder Suggestion Box (similar like Obsidian internal link suggestion)
 -   Updating existing folder links on rename/move
     -   and warning on delete (similar to regular internal links)
 -   _maybe:_
