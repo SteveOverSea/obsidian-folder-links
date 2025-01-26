@@ -76,7 +76,7 @@ class CMFolderLinkPlugin implements PluginValue {
 				from,
 				to,
 				enter(node) {
-					if (node.type.name === "hmd-internal-link") {
+					if (node.type.name.includes("hmd-internal-link")) {
 						const nodeText = view.state.doc.sliceString(
 							node.from,
 							node.to
