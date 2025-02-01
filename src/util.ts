@@ -16,7 +16,7 @@ export function getMarkdownLeaves(app: App) {
 
 // removes last "/"
 export function getPathFromFolder(folder: string) {
-	folder.substring(0, folder.length - 1);
+	return folder.substring(0, folder.length - 1);
 }
 
 export function debounce<T>(
@@ -50,4 +50,44 @@ export function debounce<T>(
 			subscription.unsubscribe();
 		};
 	});
+}
+
+export function retryWithTimeout(
+	callback: Function,
+	maxRetries = 5,
+	initialDelay = 50
+) {
+	let attempt = 0;
+
+	function tryExecute() {
+		return new Promise<void>((resolve, reject) => {
+			try {
+				callback();
+				resolve();
+			} catch (error) {
+				attempt++;
+				if (attempt < maxRetries) {
+					// Exponential backoff
+					const delay = initialDelay * Math.pow(2, attempt);
+
+					setTimeout(() => {
+						try {
+							tryExecute();
+							resolve();
+						} catch (error) {
+							reject();
+						}
+					}, delay);
+				} else {
+					reject(
+						new Error(
+							"Max retries reached. Could not complete the operation."
+						)
+					);
+				}
+			}
+		});
+	}
+
+	return tryExecute();
 }

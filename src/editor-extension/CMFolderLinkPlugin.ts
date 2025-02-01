@@ -13,6 +13,7 @@ import { RangeSetBuilder } from "@codemirror/state";
 import { IFilesCorePlugin, IFolderWrapper } from "../types";
 import { RESOLVED_LINK_CLASS, UNRESOLVED_LINK_CLASS } from "src/constants";
 import { folderField } from "./FolderStateField";
+import { getPathFromFolder } from "src/util";
 
 export class CMFolderLinkWidget extends WidgetType {
 	content: string;
@@ -27,10 +28,7 @@ export class CMFolderLinkWidget extends WidgetType {
 		const folderLinkEl = document.createElement("a");
 
 		if (folders) {
-			const folderPath = this.content.substring(
-				0,
-				this.content.length - 1
-			);
+			const folderPath = getPathFromFolder(this.content);
 
 			if (folders.asPathes.includes(folderPath)) {
 				folderLinkEl.addClass(RESOLVED_LINK_CLASS);
@@ -62,7 +60,10 @@ class CMFolderLinkPlugin implements PluginValue {
 	}
 
 	update(update: ViewUpdate) {
-		if (update.docChanged || update.viewportChanged || true) {
+		if (
+			update.state.field(folderField).raw !=
+			update.startState.field(folderField).raw
+		) {
 			this.decorations = this.buildDecorations(update.view);
 		}
 	}

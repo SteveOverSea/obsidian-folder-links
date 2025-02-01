@@ -2,7 +2,12 @@ import { MarkdownView, Plugin } from "obsidian";
 import { folderLinksPlugin } from "./editor-extension/CMFolderLinkPlugin";
 import { IFilesCorePlugin, IFolderWrapper } from "./types";
 import { folderLinkPostProcessor } from "./post-processor/FolderLinkPostProcessor";
-import { debounce, getMarkdownLeaves, loadFolders } from "./util";
+import {
+	debounce,
+	getMarkdownLeaves,
+	loadFolders,
+	retryWithTimeout,
+} from "./util";
 import { EditorView } from "@codemirror/view";
 import { folderField, updateEffect } from "./editor-extension/FolderStateField";
 import { Observable } from "zen-observable-ts";
@@ -10,10 +15,20 @@ import { Observable } from "zen-observable-ts";
 export default class FolderLinksPlugin extends Plugin {
 	filesCorePlugin: IFilesCorePlugin;
 	folderObservable: Observable<IFolderWrapper>;
+	currentfolderObsValue: IFolderWrapper;
 
 	async onload() {
 		this.app.workspace.onLayoutReady(() => {
 			this.filesCorePlugin = this.getInternalFileExlorerPlugin();
+
+			this.registerEvent(
+				this.app.workspace.on("file-open", () => {
+					// state field is not immediately available
+					retryWithTimeout(() => {
+						this.updateEditorState(this.currentfolderObsValue);
+					});
+				})
+			);
 
 			this.folderObservable = debounce(
 				new Observable((observer) => {
@@ -53,6 +68,9 @@ export default class FolderLinksPlugin extends Plugin {
 			editorView.dispatch({
 				effects: [updateEffect.of(folders)],
 			});
+			if (editorView.state.field(folderField) == null) {
+				throw new Error("could not update editor state");
+			}
 		}
 	}
 
@@ -71,6 +89,7 @@ export default class FolderLinksPlugin extends Plugin {
 
 	init() {
 		this.folderObservable.subscribe((folders) => {
+			this.currentfolderObsValue = folders;
 			this.updateEditorState(folders);
 		});
 

@@ -1,6 +1,7 @@
 import { MarkdownRenderChild } from "obsidian";
 import { RESOLVED_LINK_CLASS, UNRESOLVED_LINK_CLASS } from "../constants";
 import { IFilesCorePlugin, IFolderWrapper } from "../types";
+import { getPathFromFolder } from "src/util";
 
 export class FolderLinkView extends MarkdownRenderChild {
 	static filesCorePlugin: IFilesCorePlugin;
@@ -31,10 +32,7 @@ export class FolderLinkView extends MarkdownRenderChild {
 			target.removeAttribute("data-href");
 			target.removeAttribute("target");
 
-			const folderPath = target.textContent.substring(
-				0,
-				target.textContent.length - 1
-			);
+			const folderPath = getPathFromFolder(target.textContent);
 
 			if (FolderLinkView.folders.asPathes.includes(folderPath)) {
 				target.addClass(RESOLVED_LINK_CLASS);
