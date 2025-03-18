@@ -2,12 +2,7 @@ import { MarkdownView, Plugin } from "obsidian";
 import { folderLinksPlugin } from "./editor-extension/CMFolderLinkPlugin";
 import { IFilesCorePlugin, IFolderWrapper } from "./types";
 import { folderLinkPostProcessor } from "./post-processor/FolderLinkPostProcessor";
-import {
-	debounce,
-	getMarkdownLeaves,
-	loadFolders,
-	retryWithTimeout,
-} from "./util";
+import { debounce, loadFolders } from "./util";
 import { EditorView } from "@codemirror/view";
 import { folderField, updateEffect } from "./editor-extension/FolderStateField";
 import { Observable } from "zen-observable-ts";
@@ -22,11 +17,8 @@ export default class FolderLinksPlugin extends Plugin {
 			this.filesCorePlugin = this.getInternalFileExlorerPlugin();
 
 			this.registerEvent(
-				this.app.workspace.on("file-open", () => {
-					// state field is not immediately available
-					retryWithTimeout(() => {
-						this.updateEditorState(this.currentfolderObsValue);
-					});
+				this.app.workspace.on("active-leaf-change", () => {
+					this.updateEditorState(this.currentfolderObsValue);
 				})
 			);
 
@@ -60,17 +52,23 @@ export default class FolderLinksPlugin extends Plugin {
 	}
 
 	updateEditorState(folders: IFolderWrapper) {
-		const markdownViews = getMarkdownLeaves(this.app);
-		for (const markdownView of markdownViews) {
-			const editorView = (
-				(markdownView.view as MarkdownView).editor as any
-			).cm as EditorView;
-			editorView.dispatch({
-				effects: [updateEffect.of(folders)],
-			});
-			if (editorView.state.field(folderField) == null) {
-				throw new Error("could not update editor state");
-			}
+		const markdownView =
+			this.app.workspace.getActiveViewOfType(MarkdownView);
+
+		if (!markdownView) {
+			return;
+		}
+
+		const editorView =
+			//@ts-ignore
+			(markdownView as MarkdownView).editor.cm as EditorView;
+
+		editorView.dispatch({
+			effects: [updateEffect.of(folders)],
+		});
+
+		if (editorView.state.field(folderField) == null) {
+			throw new Error("could not update editor state");
 		}
 	}
 
