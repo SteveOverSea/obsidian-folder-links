@@ -60,12 +60,7 @@ class CMFolderLinkPlugin implements PluginValue {
 	}
 
 	update(update: ViewUpdate) {
-		if (
-			update.state.field(folderField).raw !=
-			update.startState.field(folderField).raw
-		) {
-			this.decorations = this.buildDecorations(update.view);
-		}
+		this.decorations = this.buildDecorations(update.view);
 	}
 
 	buildDecorations(view: EditorView): DecorationSet {
