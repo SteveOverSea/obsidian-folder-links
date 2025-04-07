@@ -24,15 +24,15 @@ export class FolderLinkView extends MarkdownRenderChild {
 
 	render(): void {
 		this.targets.forEach((target) => {
-			// is it even possible to have links with no content?
-			if (!target.textContent || !FolderLinkView.folders) {
+			if (!target.dataset.href || !FolderLinkView.folders) {
 				return;
 			}
+
+			const folderPath = getPathFromFolder(target.dataset.href);
+
 			target.removeAttribute("href");
 			target.removeAttribute("data-href");
 			target.removeAttribute("target");
-
-			const folderPath = getPathFromFolder(target.textContent);
 
 			if (FolderLinkView.folders.asPathes.includes(folderPath)) {
 				target.addClass(RESOLVED_LINK_CLASS);

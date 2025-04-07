@@ -17,10 +17,19 @@ import { getPathFromFolder } from "src/util";
 
 export class CMFolderLinkWidget extends WidgetType {
 	content: string;
+	href: string;
+	lineNr: number;
 
-	constructor(content: string, private filesCorePlugin: IFilesCorePlugin) {
+	constructor(
+		content: string,
+		href: string,
+		lineNr: number,
+		private filesCorePlugin: IFilesCorePlugin
+	) {
 		super();
 		this.content = content;
+		this.href = href ?? content;
+		this.lineNr = lineNr;
 	}
 
 	toDOM(view: EditorView): HTMLElement {
@@ -28,7 +37,7 @@ export class CMFolderLinkWidget extends WidgetType {
 		const folderLinkEl = document.createElement("a");
 
 		if (folders) {
-			const folderPath = getPathFromFolder(this.content);
+			const folderPath = getPathFromFolder(this.href.trim());
 
 			if (folders.asPathes.includes(folderPath)) {
 				folderLinkEl.addClass(RESOLVED_LINK_CLASS);
@@ -44,7 +53,18 @@ export class CMFolderLinkWidget extends WidgetType {
 				folderLinkEl.removeClass(RESOLVED_LINK_CLASS);
 			}
 
-			folderLinkEl.innerText = this.content;
+			const activeLine = view.state.doc.lineAt(
+				view.state.selection.main.from
+			);
+
+			if (
+				activeLine.number === this.lineNr &&
+				this.content != this.href
+			) {
+				folderLinkEl.innerText = `${this.href}|${this.content}`;
+			} else {
+				folderLinkEl.innerText = this.content;
+			}
 		}
 
 		return folderLinkEl;
@@ -69,7 +89,8 @@ class CMFolderLinkPlugin implements PluginValue {
 
 		let currentStart: number | null = null;
 		let currentEnd: number | null = null;
-		let currentText: string | null = null;
+		let hasAlias = false;
+
 		for (let { from, to } of view.visibleRanges) {
 			syntaxTree(view.state).iterate({
 				from,
@@ -82,23 +103,35 @@ class CMFolderLinkPlugin implements PluginValue {
 						// start of a link
 						currentStart = node.from;
 						currentEnd = node.to;
+						hasAlias = node.type.name.includes("link-has-alias");
 					} else if (currentStart && isInternalLink) {
 						// continue of a link
 						currentEnd = node.to;
 					} else if (currentStart && currentEnd && !isInternalLink) {
 						// end of a link
-						const currentText = view.state.doc.sliceString(
+						let currentText = view.state.doc.sliceString(
 							currentStart,
 							currentEnd
 						);
+						let currentHref = currentText;
 
-						if (currentText.endsWith("/")) {
+						if (hasAlias) {
+							const parts = currentText.split("|");
+							currentHref = parts[0];
+							currentText = parts[1];
+						}
+
+						if (currentHref.trim().endsWith("/")) {
 							builder.add(
 								currentStart!,
 								currentEnd!,
 								Decoration.widget({
 									widget: new CMFolderLinkWidget(
 										currentText,
+										currentHref,
+										view.state.doc.lineAt(
+											currentStart
+										).number,
 										filesCorePlugin
 									),
 								})
@@ -106,6 +139,7 @@ class CMFolderLinkPlugin implements PluginValue {
 
 							currentStart = null;
 							currentEnd = null;
+							hasAlias = false;
 						}
 					}
 				},

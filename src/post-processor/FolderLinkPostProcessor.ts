@@ -26,7 +26,9 @@ class FolderLinkPostProcessor {
 		) => {
 			const folderLinks = element
 				.findAll(".internal-link")
-				.filter((el) => el.textContent && el.textContent.endsWith("/"));
+				.filter(
+					(el) => el.dataset.href && el.dataset.href.endsWith("/")
+				);
 
 			if (folderLinks && folderLinks.length) {
 				const child = new FolderLinkView(

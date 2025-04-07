@@ -67,7 +67,7 @@ export default class FolderLinksPlugin extends Plugin {
 			effects: [updateEffect.of(folders)],
 		});
 
-		if (editorView.state.field(folderField) == null) {
+		if (editorView.state?.field(folderField) == null) {
 			throw new Error("could not update editor state");
 		}
 	}
