@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-folder-links",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"description": "Clicking a link to a folder makes it revealed in the navigation.",
 	"main": "main.js",
 	"scripts": {

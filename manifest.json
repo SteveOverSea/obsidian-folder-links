@@ -1,7 +1,7 @@
 {
 	"id": "folder-links",
 	"name": "Folder Links",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"minAppVersion": "0.15.0",
 	"description": "Clicking a link to a folder makes it revealed in the navigation.",
 	"author": "Stefan Rausch",
