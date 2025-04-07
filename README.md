@@ -17,6 +17,8 @@ Add a `/` at the end of a regular internal link. If the folder exists it will be
 ```markdown
 [[MyFolder/]]
 [[MyFolder/MySubfolder/]]
+
+[[MyFolder/ | MyCustomText]]
 ```
 
 ## Extension Ideas
