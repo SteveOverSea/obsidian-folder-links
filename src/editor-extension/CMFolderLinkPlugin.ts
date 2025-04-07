@@ -67,28 +67,45 @@ class CMFolderLinkPlugin implements PluginValue {
 		const builder = new RangeSetBuilder<Decoration>();
 		const filesCorePlugin = this.filesCorePlugin;
 
+		let currentStart: number | null = null;
+		let currentEnd: number | null = null;
+		let currentText: string | null = null;
 		for (let { from, to } of view.visibleRanges) {
 			syntaxTree(view.state).iterate({
 				from,
 				to,
 				enter(node) {
-					if (node.type.name.includes("hmd-internal-link")) {
-						const nodeText = view.state.doc.sliceString(
-							node.from,
-							node.to
+					const isInternalLink =
+						node.type.name.includes("hmd-internal-link");
+
+					if (!currentStart && !currentEnd && isInternalLink) {
+						// start of a link
+						currentStart = node.from;
+						currentEnd = node.to;
+					} else if (currentStart && isInternalLink) {
+						// continue of a link
+						currentEnd = node.to;
+					} else if (currentStart && currentEnd && !isInternalLink) {
+						// end of a link
+						const currentText = view.state.doc.sliceString(
+							currentStart,
+							currentEnd
 						);
 
-						if (nodeText.endsWith("/")) {
+						if (currentText.endsWith("/")) {
 							builder.add(
-								node.from,
-								node.to,
+								currentStart!,
+								currentEnd!,
 								Decoration.widget({
 									widget: new CMFolderLinkWidget(
-										nodeText,
+										currentText,
 										filesCorePlugin
 									),
 								})
 							);
+
+							currentStart = null;
+							currentEnd = null;
 						}
 					}
 				},
