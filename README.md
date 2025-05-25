@@ -4,9 +4,9 @@ Have you ever wanted to link to a folder? This plugin adds a frequently requeste
 
 **Features:**
 
--   Click on existing Folder Link reveals folder in navigation
--   Click on non-existing Folder creates new folder
--   resolved/unresolve styling
+-   Click on link to an existing folder reveals folder in navigation
+-   Click on link to a non-existing folder creates new folder
+-   resolved/unresolved styling
 -   works with outgoing links tab too (can be disabled in options)
 -   supports usage of display text (e.g. `[[MyFolder/ | MyCustomText]]`)
 
