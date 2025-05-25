@@ -5,7 +5,8 @@
 	--link-unresolved-color: var(--link-color) !important;
 }
 
-.is-resolved .is-unresolved {
+.is-resolved .is-unresolved,
+.is-resolved.is-unresolved {
 	--link-unresolved-opacity: initial !important;
 	--link-unresolved-decoration-style: var(--link-decoration-style) !important;
 	--link-unresolved-decoration-color: var(--link-decoration-color) !important;

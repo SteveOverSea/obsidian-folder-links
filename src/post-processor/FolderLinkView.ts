@@ -35,6 +35,9 @@ export class FolderLinkView extends MarkdownRenderChild {
 			if (FolderLinkView.folders.asPathes.includes(folderPath)) {
 				target.addClass(RESOLVED_LINK_CLASS);
 				target.removeClass(UNRESOLVED_LINK_CLASS);
+				target.removeAttribute("data-href");
+				target.removeAttribute("href");
+				target.removeAttribute("target");
 			} else {
 				target.addClass(UNRESOLVED_LINK_CLASS);
 				target.removeClass(RESOLVED_LINK_CLASS);
