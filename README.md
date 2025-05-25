@@ -25,7 +25,6 @@ Add a `/` at the end of a regular internal link. If the folder exists it will be
 
 ## Extension Ideas
 
--	proper Backlink support (reveal on click, option to hide folder links in outgoing links, folder icon)
 -   Fuzzy Folder Suggestion Box (like the Obsidian internal link suggestion)
 -   Updating existing folder links on rename/move and show warning on delete (similar to regular internal links)
 -   Option to instead of revealing folder in navigation open a index view in a tab/view that shows context of that folder
