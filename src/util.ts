@@ -16,7 +16,8 @@ export function getMarkdownLeaves(app: App) {
 
 // removes last "/"
 export function getPathFromFolder(folder: string) {
-	return folder.substring(0, folder.length - 1);
+	const trimmedFolder = folder.trim();
+	return trimmedFolder.substring(0, trimmedFolder.length - 1);
 }
 
 export function isFolderLink(string: any) {
