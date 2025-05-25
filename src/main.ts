@@ -17,6 +17,7 @@ export default class FolderLinksPlugin extends Plugin {
 	folderObservable: Observable<IFolderWrapper>;
 	currentFolderObsValue: IFolderWrapper;
 	mutationObserver: MutationObserver;
+	workspaceObserver: MutationObserver;
 
 	// bootstrap inspired event handler (source: https://github.com/twbs/bootstrap/blob/main/js/src/dom/event-handler.js)
 	on(container: Window, type: keyof WindowEventMap, selector: string, handler: (element: HTMLElement, event: Event) => void, options?: boolean | AddEventListenerOptions): void {
@@ -85,6 +86,23 @@ export default class FolderLinksPlugin extends Plugin {
 		}
 	};
 
+	setupOutgoingLinksPaneObserver() {
+		this.workspaceObserver = new MutationObserver((_mutations, observer) => {
+			const outgoingLinksPane = this.app.workspace.containerEl.querySelector('.outgoing-link-pane');
+			if (outgoingLinksPane) {
+				this.mutationObserver.observe(outgoingLinksPane, {subtree: true, childList: true});
+				observer.disconnect();
+			}
+		});
+
+		this.workspaceObserver.observe(this.app.workspace.containerEl, {subtree: true, childList: true});
+
+		const outgoingLinksPane = this.app.workspace.containerEl.querySelector('.outgoing-link-pane');
+		if (outgoingLinksPane) {
+			this.mutationObserver.observe(outgoingLinksPane, {subtree: true, childList: true});
+		}
+	}
+
 	updateEditorState(folders: IFolderWrapper) {
 		const markdownView =
 			this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -137,10 +155,7 @@ export default class FolderLinksPlugin extends Plugin {
 			this.outgoingLinkPlugin = getCorePlugin<WorkspaceLeaf>('outgoing-link');
 
 			this.mutationObserver = new MutationObserver(this.outgoingLinkMutationHandler);
-			const outgoingLinksPane = this.app.workspace.containerEl.querySelector('.outgoing-link-pane');
-			if (outgoingLinksPane) {
-				this.mutationObserver.observe(outgoingLinksPane, {subtree: true, childList: true})
-			}
+			this.setupOutgoingLinksPaneObserver();
 
 			this.registerEvent(
 				this.app.workspace.on("active-leaf-change", () => {
@@ -199,7 +214,8 @@ export default class FolderLinksPlugin extends Plugin {
 	}
 
 	unload() {
-		this.mutationObserver.disconnect();
+		this.mutationObserver?.disconnect();
+		this.workspaceObserver?.disconnect();
 		super.unload();
 	}
 }
