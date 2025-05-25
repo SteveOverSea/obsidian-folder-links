@@ -1,6 +1,6 @@
-import { App } from "obsidian";
-import { IFolderWrapper } from "./types";
-import { Observable } from "zen-observable-ts";
+import {App} from "obsidian";
+import {IFolderWrapper} from "./types";
+import {Observable} from "zen-observable-ts";
 
 export function loadFolders(app: App): IFolderWrapper {
 	const allFolders = app.vault.getAllFolders();
@@ -17,6 +17,10 @@ export function getMarkdownLeaves(app: App) {
 // removes last "/"
 export function getPathFromFolder(folder: string) {
 	return folder.substring(0, folder.length - 1);
+}
+
+export function isFolderLink(string: any) {
+	return string.endsWith("/");
 }
 
 export function debounce<T>(
@@ -50,4 +54,17 @@ export function debounce<T>(
 			subscription.unsubscribe();
 		};
 	});
+}
+
+export function getCorePlugin<T>(type: string): T {
+	const plugins =
+		this.app.workspace.getLeavesOfType(type);
+
+	if (plugins.length !== 1) {
+		throw new Error(`Could not load core plugin of type ${type}.`);
+	}
+
+	return this.app.workspace.getLeavesOfType(
+		type
+	)[0];
 }

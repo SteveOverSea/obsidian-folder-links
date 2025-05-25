@@ -1,17 +1,12 @@
-import {
-	EditorState,
-	StateEffect,
-	StateField,
-	Transaction,
-} from "@codemirror/state";
-import { IFolderWrapper } from "src/types";
+import {EditorState, StateEffect, StateField, Transaction,} from "@codemirror/state";
+import {IFolderWrapper} from "src/types";
 
 export const updateEffect = StateEffect.define<IFolderWrapper>();
 const resetEffect = StateEffect.define<IFolderWrapper>();
 
 export const folderField = StateField.define<IFolderWrapper>({
-	create(state: EditorState): IFolderWrapper {
-		return { raw: [], asPathes: [] };
+	create(_state: EditorState): IFolderWrapper {
+		return {raw: [], asPathes: []};
 	},
 	update(oldState: IFolderWrapper, transaction: Transaction): IFolderWrapper {
 		let newState = oldState;
@@ -20,7 +15,7 @@ export const folderField = StateField.define<IFolderWrapper>({
 			if (effect.is(updateEffect)) {
 				newState = effect.value;
 			} else if (effect.is(resetEffect)) {
-				newState = { raw: [], asPathes: [] };
+				newState = {raw: [], asPathes: []};
 			}
 		}
 

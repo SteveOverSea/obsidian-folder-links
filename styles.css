@@ -1,8 +1,10 @@
-/*
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.is-resolved .is-unresolved .cm-underline {
+	--link-unresolved-decoration-style: var(--link-decoration-style) !important;
+	--link-unresolved-decoration-color: var(--link-decoration-color) !important;
+	--link-unresolved-color: var(--link-color) !important;
+}
 
-If your plugin does not need CSS, delete this file.
-
-*/
+.is-resolved .is-unresolved {
+	--link-unresolved-opacity: initial !important;
+}
