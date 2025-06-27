@@ -1,221 +1,161 @@
-import {MarkdownView, Plugin, setIcon, WorkspaceLeaf} from "obsidian";
-import {IFileExplorerPlugin, IFolderWrapper} from "./types";
-import {folderLinkPostProcessor} from "./post-processor/FolderLinkPostProcessor";
-import {debounce, getCorePlugin, getPathFromFolder, loadFolders} from "./util";
-import {EditorView} from "@codemirror/view";
-import {folderField, updateEffect} from "./editor-extension/FolderStateField";
-import {Observable} from "zen-observable-ts";
-import {folderMarkPlugin} from "./editor-extension/MarkFolderLink";
-import {PluginSettings} from "./settings/ISettings";
-import {SettingsTab} from "./settings/SettingsTab";
-import {DEFAULT_SETTINGS} from "./settings/default";
+import { Plugin, WorkspaceLeaf } from 'obsidian';
+import { CorePluginId } from './constants';
+import { folderField } from './editor-extension/FolderStateField';
+import { folderUpdater } from './editor-extension/FolderUpdater';
+import { folderMarkPlugin } from './editor-extension/MarkFolderLink';
+import { showErrorNotice, UserHandableError } from './error';
+import { folderLinkPostProcessor } from './post-processor/FolderLinkPostProcessor';
+import CorePluginService from './services/CorePluginService';
+import EventService from './services/EventService';
+import FolderService from './services/FolderService';
+import { GraphViewManager } from './services/GraphViewManager';
+import { OutgoingLinkmanager } from './services/OutgoingLinkManager';
+import { DEFAULT_SETTINGS } from './settings/default';
+import { PluginSettings } from './settings/ISettings';
+import { SettingsTab } from './settings/SettingsTab';
+import { IFileExplorerPlugin, IGraphView, IOutgoingLink } from './types';
+import { FolderLinkManager } from './services/FolderLinkManager';
+import { ModalService } from './services/ModalService';
+import { TranslationService } from './services/TranslationService';
+import { SettingsService } from './services/SettingsService';
+import { WorkspaceService } from './services/WorkspaceService';
 
 export default class FolderLinksPlugin extends Plugin {
-	settings: PluginSettings;
-	fileExplorerPlugin: IFileExplorerPlugin;
-	outgoingLinkPlugin: WorkspaceLeaf;
-	folderObservable: Observable<IFolderWrapper>;
-	currentFolderObsValue: IFolderWrapper;
-	mutationObserver: MutationObserver;
-	workspaceObserver: MutationObserver;
+    private settings: PluginSettings;
+    private settingsService: SettingsService;
+    private workspaceService: WorkspaceService;
+    private translationService: TranslationService;
+    private eventService: EventService;
+    private modalService: ModalService;
+    private corePluginService: CorePluginService;
+    private folderService: FolderService;
+    private folderLinkManager: FolderLinkManager;
+    private graphViewManager: GraphViewManager;
+    private outgoingLinkManager: OutgoingLinkmanager | undefined;
+    private obsidianFileExplorer: IFileExplorerPlugin;
+    private obsidianOutgoingLink: IOutgoingLink | undefined;
 
-	// bootstrap inspired event handler (source: https://github.com/twbs/bootstrap/blob/main/js/src/dom/event-handler.js)
-	on(container: Window, type: keyof WindowEventMap, selector: string, handler: (element: HTMLElement, event: Event) => void, options?: boolean | AddEventListenerOptions): void {
-		this.registerDomEvent(container, type, (ev) => {
-			const target = (ev.target as HTMLElement).closest(selector);
-			if (target) {
-				handler(target as HTMLElement, ev);
-			}
-		}, options);
-	}
+    onload() {
+        try {
+            this.setup();
+        } catch (error) {
+            if (error instanceof UserHandableError) {
+                showErrorNotice(error.message);
+            } else {
+                showErrorNotice('An internal error occured.');
+            }
+        }
+    }
 
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
+    async setup() {
+        await this.setupSettings();
+        this.initServices();
 
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
+        await this.eventService.waitForLayoutReady();
+        this.setupFileExplorer();
+        this.initServices();
+        this.initDependentServices();
+        this.setupCorePluginWatchers();
 
-	removeFolderLinksFromOutgoingLinks() {
-		const itemEls = this.outgoingLinkPlugin.view.containerEl.querySelectorAll('.outgoing-link-item');
-		itemEls.forEach((itemEl) => {
-			if (itemEl.textContent?.endsWith('/')) {
-				itemEl.remove();
-			}
-		});
-	}
+        this.registerMarkdownPostProcessor(folderLinkPostProcessor(this.folderService.observable));
 
-	updateFolderLinksFromOutgoingLinks() {
-		const itemEls = this.outgoingLinkPlugin.view.containerEl.querySelectorAll('.outgoing-link-item');
-		itemEls.forEach((itemEl) => {
-			const linkName = itemEl.textContent;
+        this.registerEditorExtension([
+            folderUpdater(this.folderService.observable),
+            folderField,
+            folderMarkPlugin
+        ]);
 
-			if (linkName?.endsWith('/') && this.currentFolderObsValue) {
-				const folder = this.currentFolderObsValue.raw.filter(
-					(f) => f.path === getPathFromFolder(linkName)
-				)[0];
+        this.folderService.observable.subscribe(() => {
+            if (this.graphViewManager) {
+                this.graphViewManager.update();
+            }
+        });
+    }
 
-				(itemEl as HTMLElement).dataset.folderLink = linkName;
+    private async setupSettings() {
+        await this.loadSettings();
+        this.addSettingTab(new SettingsTab(this.app, this, this.settings));
+    }
 
-				const iconEl = itemEl.querySelector('.tree-item-icon') as HTMLElement;
+    private async loadSettings() {
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    }
 
-				if (folder) {
-					(itemEl as HTMLElement).ariaLabel = window.OBSIDIAN_DEFAULT_I18N.plugins.fileExplorer.actionRevealFile;
-					iconEl && setIcon(iconEl, 'link');
-				} else {
-					(itemEl as HTMLElement).ariaLabel = window.OBSIDIAN_DEFAULT_I18N.plugins.outgoingLinks.tooltipNotCreated;
-					iconEl && setIcon(iconEl, 'folder-plus');
-				}
+    async saveSettings() {
+        await this.saveData(this.settings);
+    }
 
-			}
-		});
-	}
+    private initServices() {
+        this.settingsService = new SettingsService(this, this.settings);
+        this.workspaceService = new WorkspaceService(this.app.workspace, this.app.metadataCache);
+        this.translationService = new TranslationService(window.i18next);
+        this.eventService = new EventService(this);
+        this.modalService = new ModalService(this.app);
+        this.corePluginService = new CorePluginService(this.app.workspace);
+        this.folderService = new FolderService(
+            this.app.vault,
+            this.app.metadataCache,
+            this.eventService
+        );
+    }
 
-	outgoingLinkMutationHandler = (mutationsList: MutationRecord[], _observer: MutationObserver) => {
-		for (const mutation of mutationsList) {
-			if (mutation.addedNodes.length > 0) {
-				if (this.settings.showInBackLinks) {
-					if (Array.from(mutation.addedNodes).every((node) => node instanceof HTMLElement && !node.className.contains('lucide') && !node.dataset.lucide)) {
-						this.updateFolderLinksFromOutgoingLinks();
-					}
-				} else {
-					this.removeFolderLinksFromOutgoingLinks();
-				}
-			}
-		}
-	};
+    private setupFileExplorer() {
+        const instances = this.corePluginService.getInstancesImmediate<IFileExplorerPlugin>(
+            CorePluginId.FileExplorer
+        );
+        if (instances.length === 0) {
+            throw new UserHandableError(
+                'No file explorer plugin found. Is the core plugin enabled?'
+            );
+        } else if (instances.length > 1) {
+            throw new Error('More than one file explorer plugin found. Undefined state.');
+        }
+        this.obsidianFileExplorer = instances[0];
+    }
 
-	setupOutgoingLinksPaneObserver() {
-		this.workspaceObserver = new MutationObserver((_mutations, observer) => {
-			const outgoingLinksPane = this.app.workspace.containerEl.querySelector('.outgoing-link-pane');
-			if (outgoingLinksPane) {
-				this.mutationObserver.observe(outgoingLinksPane, {subtree: true, childList: true});
-				observer.disconnect();
-			}
-		});
+    private initDependentServices() {
+        this.folderLinkManager = new FolderLinkManager(
+            this.app.vault,
+            this.settingsService,
+            this.translationService,
+            this.eventService,
+            this.modalService,
+            this.folderService,
+            this.obsidianFileExplorer
+        );
+        this.graphViewManager = new GraphViewManager(this.folderService, this.obsidianFileExplorer);
+    }
 
-		this.workspaceObserver.observe(this.app.workspace.containerEl, {subtree: true, childList: true});
-
-		const outgoingLinksPane = this.app.workspace.containerEl.querySelector('.outgoing-link-pane');
-		if (outgoingLinksPane) {
-			this.mutationObserver.observe(outgoingLinksPane, {subtree: true, childList: true});
-		}
-	}
-
-	updateEditorState(folders: IFolderWrapper) {
-		const markdownView =
-			this.app.workspace.getActiveViewOfType(MarkdownView);
-
-		if (!markdownView) {
-			return;
-		}
-
-		const editorView =
-			//@ts-ignore
-			(markdownView as MarkdownView).editor.cm as EditorView;
-
-		editorView.dispatch({
-			effects: [updateEffect.of(folders)],
-		});
-
-		if (editorView.hasFocus && editorView.state?.field(folderField) == null) {
-			throw new Error("could not update editor state");
-		}
-	}
-
-	setupClickListener() {
-		this.on(window, 'click', '[data-folder-link]', (el, ev) => {
-			ev.stopPropagation();
-			const existingFolder = this.currentFolderObsValue.raw.filter(
-				(f) => f.path === getPathFromFolder(el.dataset.folderLink!)
-			)[0];
-
-			if (existingFolder) {
-				this.fileExplorerPlugin.view.revealInFolder(existingFolder)
-			} else {
-				this.app.vault.createFolder(getPathFromFolder(el.dataset.folderLink!));
-			}
-
-		}, true);
-	}
-
-	async onload() {
-		await this.loadSettings();
-		this.addSettingTab(new SettingsTab(this.app, this));
-
-		if (!window.OBSIDIAN_DEFAULT_I18N) {
-			throw new Error("could not load obsdidian default i18n");
-		}
-
-		this.setupClickListener();
-
-		this.app.workspace.onLayoutReady(() => {
-			this.fileExplorerPlugin = getCorePlugin<IFileExplorerPlugin>('file-explorer');
-			this.outgoingLinkPlugin = getCorePlugin<WorkspaceLeaf>('outgoing-link');
-
-			this.mutationObserver = new MutationObserver(this.outgoingLinkMutationHandler);
-			this.setupOutgoingLinksPaneObserver();
-
-			this.registerEvent(
-				this.app.workspace.on("active-leaf-change", () => {
-					this.updateEditorState(this.currentFolderObsValue);
-				})
-			);
-
-			this.folderObservable = debounce(
-				new Observable((observer) => {
-					observer.next(loadFolders(this.app));
-
-					this.registerEvent(
-						this.app.vault.on("create", () => {
-							observer.next(loadFolders(this.app));
-						})
-					);
-
-					this.registerEvent(
-						this.app.vault.on("rename", () => {
-							observer.next(loadFolders(this.app));
-						})
-					);
-
-					this.registerEvent(
-						this.app.vault.on("delete", () => {
-							observer.next(loadFolders(this.app));
-						})
-					);
-				}),
-				50
-			);
-
-			this.init();
-		});
-	}
-
-	init() {
-		this.folderObservable.subscribe((folders) => {
-			this.currentFolderObsValue = folders;
-			this.updateEditorState(folders);
-			if (this.settings.showInBackLinks) {
-				this.updateFolderLinksFromOutgoingLinks();
-			} else {
-				this.removeFolderLinksFromOutgoingLinks();
-			}
-		});
-
-		this.registerMarkdownPostProcessor(
-			folderLinkPostProcessor(this.folderObservable, this.fileExplorerPlugin)
-		);
-
-		this.registerEditorExtension([
-			folderField,
-			folderMarkPlugin
-		]);
-	}
-
-	unload() {
-		this.mutationObserver?.disconnect();
-		this.workspaceObserver?.disconnect();
-		super.unload();
-	}
+    private setupCorePluginWatchers() {
+        this.corePluginService.registerWatcher<IOutgoingLink>(
+            CorePluginId.OutgoingLink,
+            (leaf) => {
+                this.obsidianOutgoingLink = leaf;
+                this.outgoingLinkManager = new OutgoingLinkmanager(
+                    this.translationService,
+                    this.folderService,
+                    this.obsidianOutgoingLink,
+                    this.settings
+                );
+            },
+            () => {
+                this.obsidianOutgoingLink = undefined;
+                this.outgoingLinkManager?.disconnect();
+                this.outgoingLinkManager = undefined;
+            }
+        );
+        this.corePluginService.registerWatcher<IGraphView>(
+            CorePluginId.GraphView,
+            (leaf) => {
+                this.graphViewManager.addInstance(leaf);
+            },
+            (leaf) => {
+                this.graphViewManager.removeInstance(leaf);
+            },
+            (leaf) => {
+                this.graphViewManager.updateInstance(leaf);
+            },
+            true
+        );
+    }
 }

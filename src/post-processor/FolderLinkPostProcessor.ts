@@ -1,14 +1,13 @@
-import {MarkdownPostProcessor, MarkdownPostProcessorContext} from "obsidian";
-import {FolderLinkView} from "./FolderLinkView";
-import {IFileExplorerPlugin, IFolderWrapper} from "src/types";
-import {Observable} from "zen-observable-ts";
+import { MarkdownPostProcessor, MarkdownPostProcessorContext } from "obsidian";
+import { FolderLinkView } from "./FolderLinkView";
+import { IFileExplorerPlugin, IFolderWrapper } from "src/types";
+import { Observable } from "zen-observable-ts";
 
 class FolderLinkPostProcessor {
 	folderLinkViews: FolderLinkView[] = [];
 
 	constructor(
 		private folderObs: Observable<IFolderWrapper>,
-		private filesCorePlugin: IFileExplorerPlugin
 	) {
 		this.folderObs.subscribe((folders) => {
 			FolderLinkView.folders = folders;
@@ -33,9 +32,7 @@ class FolderLinkPostProcessor {
 			if (folderLinks && folderLinks.length) {
 				const child = new FolderLinkView(
 					element,
-					folderLinks,
-					this.filesCorePlugin
-				);
+					folderLinks);
 				context.addChild(child);
 				this.folderLinkViews.push(child);
 			}
@@ -44,6 +41,4 @@ class FolderLinkPostProcessor {
 }
 
 export const folderLinkPostProcessor = (
-	folderObs: Observable<IFolderWrapper>,
-	filesCorePlugin: IFileExplorerPlugin
-) => new FolderLinkPostProcessor(folderObs, filesCorePlugin).create();
+	folderObs: Observable<IFolderWrapper>) => new FolderLinkPostProcessor(folderObs).create();

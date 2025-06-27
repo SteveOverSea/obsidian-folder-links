@@ -1,3 +1,4 @@
 export interface PluginSettings {
-	showInBackLinks: boolean;
+    showInBackLinks: boolean;
+    alwaysUpdate: boolean;
 }
