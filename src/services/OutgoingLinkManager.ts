@@ -18,6 +18,7 @@ export class OutgoingLinkmanager {
     ) {
         this.debouncedUpdateFolderLinks = this.debounce(() => this.updateFolderLinks(), 100);
         this.setupMutationObserver();
+        this.update();
     }
 
     private debounce(func: () => void, wait: number) {
@@ -31,7 +32,7 @@ export class OutgoingLinkmanager {
     private setupMutationObserver() {
         const container = this.outgoingLink.view.containerEl;
         if (!container) return;
-        this.mutationObserver = new MutationObserver(this.update.bind(this));
+        this.mutationObserver = new MutationObserver(this.mutationHandler.bind(this));
         this.mutationObserver.observe(container, {
             childList: true,
             subtree: true,
@@ -40,7 +41,7 @@ export class OutgoingLinkmanager {
         });
     }
 
-    update(args: MutationRecord[]) {
+    mutationHandler(args: MutationRecord[]) {
         // Only react if a relevant mutation occurred
         const relevant = args.some(
             (mutation) =>
@@ -53,13 +54,17 @@ export class OutgoingLinkmanager {
         if (this.isUpdating) return; // Prevent re-entrancy
         this.isUpdating = true;
         try {
-            if (this.settings.showInBackLinks) {
-                this.debouncedUpdateFolderLinks();
-            } else {
-                this.removeFolderLinks();
-            }
+            this.update();
         } finally {
             this.isUpdating = false;
+        }
+    }
+
+    update() {
+        if (this.settings.showInBackLinks) {
+            this.debouncedUpdateFolderLinks();
+        } else {
+            this.removeFolderLinks();
         }
     }
 
