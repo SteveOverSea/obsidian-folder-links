@@ -116,6 +116,7 @@ export default class FolderLinksPlugin extends Plugin {
     private initDependentServices() {
         this.folderLinkManager = new FolderLinkManager(
             this.app.vault,
+            this.app.workspace,
             this.settingsService,
             this.translationService,
             this.eventService,

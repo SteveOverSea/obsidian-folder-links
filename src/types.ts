@@ -30,7 +30,7 @@ export interface IOutgoingLink extends WorkspaceLeaf {
 
 export interface IFileExplorerPlugin extends WorkspaceLeaf {
     view: WorkspaceLeaf['view'] & {
-        revealInFolder: (folder: TFolder) => void;
+        revealInFolder?: (folder: TFolder) => void;
     };
 }
 

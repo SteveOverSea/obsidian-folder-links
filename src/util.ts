@@ -52,6 +52,17 @@ export function isFolderLink(string: any) {
 	return string.endsWith("/");
 }
 
+export function getFolderLinkAtLinePosition(line: string, ch: number): string | null {
+	const regex = /\[\[([^\]\|]+\/)[^\]]*\]\]/g;
+	let m;
+	while ((m = regex.exec(line)) !== null) {
+		if (ch >= m.index && ch <= m.index + m[0].length) {
+			return m[1];
+		}
+	}
+	return null;
+}
+
 export function isMarkdownFile(string: any) {
 	return string.endsWith(".md");
 }

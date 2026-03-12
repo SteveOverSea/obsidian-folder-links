@@ -39,7 +39,7 @@ export class GraphViewManager {
                     (node) => node.id === path
                 )[0];
                 if (element._folderLink) {
-                    this.fileExplorer.view.revealInFolder(element._folderLink);
+                    this.fileExplorer.view.revealInFolder?.(element._folderLink);
                 } else {
                     this.folderService.createFolder(path);
                 }

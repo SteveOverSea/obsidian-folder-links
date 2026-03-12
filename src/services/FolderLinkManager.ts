@@ -1,15 +1,18 @@
-import { escapeRegex, getFolderFromPath, getPathFromFolder } from 'src/util';
+import { escapeRegex, getFolderFromPath, getFolderLinkAtLinePosition, getPathFromFolder } from 'src/util';
 import EventService, { EventType } from './EventService';
 import FolderService from './FolderService';
 import { IFileExplorerPlugin } from 'src/types';
-import { Modal, Notice, TFile, TFolder, Vault } from 'obsidian';
+import { MarkdownView, Modal, Notice, TFile, TFolder, Vault, Workspace } from 'obsidian';
 import { ModalService } from './ModalService';
 import { TranslationService } from './TranslationService';
 import { SettingsService } from './SettingsService';
 
 export class FolderLinkManager {
+    private pendingFolderLink: string | null = null;
+
     constructor(
         private vault: Vault,
+        private workspace: Workspace,
         private settingsService: SettingsService,
         private translationService: TranslationService,
         private eventService: EventService,
@@ -21,22 +24,59 @@ export class FolderLinkManager {
         this.eventService.onVaultEvent(EventType.Rename, this.renameAfterUpdateCb.bind(this));
     }
 
+    private handleFolderLinkAction(folderLinkAttr: string) {
+        const existingFolder = this.folderService.currentValue.raw.filter(
+            (f) => f.path === getPathFromFolder(folderLinkAttr)
+        )[0];
+
+        if (existingFolder) {
+            this.workspace.revealLeaf(this.fileExplorer);
+            this.fileExplorer.view.revealInFolder?.(existingFolder);
+        } else {
+            this.folderService.createFolder(getPathFromFolder(folderLinkAttr));
+        }
+    }
+
+    private getFolderLinkAtCursor(): string | null {
+        const activeView = this.workspace.getActiveViewOfType(MarkdownView);
+        if (!activeView) return null;
+        const cursor = activeView.editor.getCursor();
+        return getFolderLinkAtLinePosition(activeView.editor.getLine(cursor.line), cursor.ch);
+    }
+
     private setupClickListener() {
+        this.eventService.onDOMEvent(
+            window,
+            'pointerdown',
+            '[data-folder-link]',
+            (el) => { this.pendingFolderLink = el.dataset.folderLink!; },
+            true
+        );
+
+        this.eventService.onDOMEvent(
+            window,
+            'click',
+            '.follow-link-popover',
+            (_el, ev) => {
+                const folderLink = this.pendingFolderLink ?? this.getFolderLinkAtCursor();
+                this.pendingFolderLink = null;
+
+                if (folderLink) {
+                    ev.stopPropagation();
+                    ev.preventDefault();
+                    this.handleFolderLinkAction(folderLink);
+                }
+            },
+            true
+        );
+
         this.eventService.onDOMEvent(
             window,
             'click',
             '[data-folder-link]',
             (el, ev) => {
                 ev.stopPropagation();
-                const existingFolder = this.folderService.currentValue.raw.filter(
-                    (f) => f.path === getPathFromFolder(el.dataset.folderLink!)
-                )[0];
-
-                if (existingFolder) {
-                    this.fileExplorer.view.revealInFolder(existingFolder);
-                } else {
-                    this.folderService.createFolder(getPathFromFolder(el.dataset.folderLink!));
-                }
+                this.handleFolderLinkAction(el.dataset.folderLink!);
             },
             true
         );
