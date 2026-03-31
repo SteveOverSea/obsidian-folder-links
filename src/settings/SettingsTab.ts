@@ -34,5 +34,15 @@ export class SettingsTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 })
             );
+			
+		new Setting(containerEl)
+			.setName('Expand folder')
+			.setDesc('When clicking a link, expand the folder in the file pane.')
+			.addToggle((component) =>
+				component.setValue(this.settings.expand).onChange(async (value) => {
+					this.settings.expand = value;
+					await this.plugin.saveSettings();
+				})
+			);
     }
 }

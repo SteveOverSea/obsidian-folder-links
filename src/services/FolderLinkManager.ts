@@ -32,6 +32,11 @@ export class FolderLinkManager {
         if (existingFolder) {
             this.workspace.revealLeaf(this.fileExplorer);
             this.fileExplorer.view.revealInFolder?.(existingFolder);
+			
+			if (this.settingsService.getSetting("expand")) {
+				this.fileExplorer.view.fileItems[existingFolder.path]?.setCollapsed(false);
+			}
+			
         } else {
             this.folderService.createFolder(getPathFromFolder(folderLinkAttr));
         }
