@@ -1,7 +1,10 @@
 import { MetadataCache, Workspace } from 'obsidian';
 
 export class WorkspaceService {
-    constructor(private workspace: Workspace, private metadataCache: MetadataCache) {}
+    constructor(
+        private workspace: Workspace,
+        private metadataCache: MetadataCache
+    ) {}
 
     getActiveEditor() {
         return this.workspace.activeEditor;

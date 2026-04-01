@@ -1,11 +1,16 @@
 import { getPathFromFolder, hexToDecimalRGB, isFolderLink } from 'src/util';
 import FolderService from './FolderService';
+import { SettingsService } from './SettingsService';
 import { IFileExplorerPlugin, IGraphView } from 'src/types';
 
 export class GraphViewManager {
     private instances: Set<IGraphView> = new Set();
 
-    constructor(private folderService: FolderService, private fileExplorer: IFileExplorerPlugin) {
+    constructor(
+        private folderService: FolderService,
+        private fileExplorer: IFileExplorerPlugin,
+        private settingsService: SettingsService
+    ) {
         this.update();
     }
 
@@ -40,6 +45,12 @@ export class GraphViewManager {
                 )[0];
                 if (element._folderLink) {
                     this.fileExplorer.view.revealInFolder?.(element._folderLink);
+
+                    if (this.settingsService.getSetting('expandOnReveal')) {
+                        this.fileExplorer.view.fileItems[element._folderLink.path]?.setCollapsed(
+                            false
+                        );
+                    }
                 } else {
                     this.folderService.createFolder(path);
                 }

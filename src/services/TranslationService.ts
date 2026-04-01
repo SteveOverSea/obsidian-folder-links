@@ -1,7 +1,6 @@
 // language data in window.i18next.store.data
 
 export class TranslationService {
-
     constructor(private i18next: any) {
         if (!i18next) {
             throw Error('No translations found');
