@@ -1,4 +1,9 @@
-import { escapeRegex, getFolderFromPath, getFolderLinkAtLinePosition, getPathFromFolder } from 'src/util';
+import {
+    escapeRegex,
+    getFolderFromPath,
+    getFolderLinkAtLinePosition,
+    getPathFromFolder
+} from 'src/util';
 import EventService, { EventType } from './EventService';
 import FolderService from './FolderService';
 import { IFileExplorerPlugin } from 'src/types';
@@ -32,11 +37,10 @@ export class FolderLinkManager {
         if (existingFolder) {
             this.workspace.revealLeaf(this.fileExplorer);
             this.fileExplorer.view.revealInFolder?.(existingFolder);
-			
-			if (this.settingsService.getSetting("expand")) {
-				this.fileExplorer.view.fileItems[existingFolder.path]?.setCollapsed(false);
-			}
-			
+
+            if (this.settingsService.getSetting('expandOnReveal')) {
+                this.fileExplorer.view.fileItems[existingFolder.path]?.setCollapsed(false);
+            }
         } else {
             this.folderService.createFolder(getPathFromFolder(folderLinkAttr));
         }
@@ -54,7 +58,9 @@ export class FolderLinkManager {
             window,
             'pointerdown',
             '[data-folder-link]',
-            (el) => { this.pendingFolderLink = el.dataset.folderLink!; },
+            (el) => {
+                this.pendingFolderLink = el.dataset.folderLink!;
+            },
             true
         );
 

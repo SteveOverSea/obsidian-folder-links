@@ -2,7 +2,10 @@ import FolderLinksPlugin from 'src/main';
 import { PluginSettings } from 'src/settings/ISettings';
 
 export class SettingsService {
-    constructor(private plugin: FolderLinksPlugin, private settings: PluginSettings) {}
+    constructor(
+        private plugin: FolderLinksPlugin,
+        private settings: PluginSettings
+    ) {}
 
     getSetting(key: keyof PluginSettings) {
         return this.settings[key];

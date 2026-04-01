@@ -125,10 +125,10 @@ export default class FolderLinksPlugin extends Plugin {
             this.obsidianFileExplorer
         );
         this.graphViewManager = new GraphViewManager(
-			this.settingsService,
-			this.folderService, 
-			this.obsidianFileExplorer
-		);
+            this.folderService,
+            this.obsidianFileExplorer,
+            this.settingsService
+        );
     }
 
     private setupCorePluginWatchers() {

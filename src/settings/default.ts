@@ -3,5 +3,5 @@ import { PluginSettings } from './ISettings';
 export const DEFAULT_SETTINGS: PluginSettings = {
     showInBackLinks: true,
     alwaysUpdate: false,
-	expand: false
+    expandOnReveal: true
 };

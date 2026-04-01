@@ -7,10 +7,10 @@ export class GraphViewManager {
     private instances: Set<IGraphView> = new Set();
 
     constructor(
-		private settingsService: SettingsService,
-		private folderService: FolderService, 
-		private fileExplorer: IFileExplorerPlugin
-	) {
+        private folderService: FolderService,
+        private fileExplorer: IFileExplorerPlugin,
+        private settingsService: SettingsService
+    ) {
         this.update();
     }
 
@@ -45,10 +45,12 @@ export class GraphViewManager {
                 )[0];
                 if (element._folderLink) {
                     this.fileExplorer.view.revealInFolder?.(element._folderLink);
-					
-					if (this.settingsService.getSetting("expand")) {
-						this.fileExplorer.view.fileItems[element._folderLink.path]?.setCollapsed(false);
-					}
+
+                    if (this.settingsService.getSetting('expandOnReveal')) {
+                        this.fileExplorer.view.fileItems[element._folderLink.path]?.setCollapsed(
+                            false
+                        );
+                    }
                 } else {
                     this.folderService.createFolder(path);
                 }

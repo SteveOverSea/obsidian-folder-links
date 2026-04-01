@@ -29,12 +29,12 @@ export interface IOutgoingLink extends WorkspaceLeaf {
 }
 
 export interface IFileExplorerItem {
-	setCollapsed: (collapsed: boolean) => void;
+    setCollapsed: (collapsed: boolean) => void;
 }
 
 export interface IFileExplorerPlugin extends WorkspaceLeaf {
     view: WorkspaceLeaf['view'] & {
-		fileItems: Record<string, IFileExplorerItem>;
+        fileItems: Record<string, IFileExplorerItem>;
         revealInFolder?: (folder: TFolder) => void;
     };
 }
