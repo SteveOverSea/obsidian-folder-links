@@ -70,6 +70,12 @@ export class GraphViewManager {
                     (f) => f.path === getPathFromFolder(node)
                 )[0];
 
+                const folderPath = getPathFromFolder(node);
+                const displayText = (folderPath.split('/').pop() ?? folderPath) + '/';
+                if (graphView.view.dataEngine.renderer.nodeLookup[node].text) {
+                    graphView.view.dataEngine.renderer.nodeLookup[node].text!.text = displayText;
+                }
+
                 if (existingFolder) {
                     graphView.view.dataEngine.renderer.nodeLookup[node]._folderLink =
                         existingFolder;

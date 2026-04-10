@@ -1,8 +1,9 @@
-import { TFile, TFolder, View, WorkspaceLeaf } from 'obsidian';
+import { TFile, TFolder, WorkspaceLeaf } from 'obsidian';
 
 interface IGraphNode {
     id: string;
     type: string;
+    text?: { text: string };
     _folderLink?: TFolder | null;
     getFillColor: () => { a: number; rgb: number };
     __proto__: IGraphNode;
