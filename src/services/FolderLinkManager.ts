@@ -7,7 +7,7 @@ import {
 import EventService, { EventType } from './EventService';
 import FolderService from './FolderService';
 import { IFileExplorerPlugin } from 'src/types';
-import { MarkdownView, Modal, Notice, TFile, TFolder, Vault, Workspace } from 'obsidian';
+import { MarkdownView, Menu, Modal, Notice, TFile, TFolder, Vault, Workspace } from 'obsidian';
 import { ModalService } from './ModalService';
 import { TranslationService } from './TranslationService';
 import { SettingsService } from './SettingsService';
@@ -88,6 +88,27 @@ export class FolderLinkManager {
             (el, ev) => {
                 ev.stopPropagation();
                 this.handleFolderLinkAction(el.dataset.folderLink!);
+            },
+            true
+        );
+
+        this.eventService.onDOMEvent(
+            window,
+            'contextmenu',
+            '[data-folder-link]',
+            (el, ev) => {
+                ev.stopPropagation();
+                ev.preventDefault();
+
+                const folderLink = el.dataset.folderLink!;
+                const folder = this.folderService.currentValue.raw.find(
+                    (f) => f.path === getPathFromFolder(folderLink)
+                );
+                if (!folder) return;
+
+                const menu = new Menu();
+                this.workspace.trigger('file-menu' as any, menu, folder, 'link-context-menu');
+                menu.showAtMouseEvent(ev as MouseEvent);
             },
             true
         );
