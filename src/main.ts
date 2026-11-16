@@ -49,11 +49,12 @@ export default class FolderLinksPlugin extends Plugin {
 
     async setup() {
         await this.setupSettings();
-        this.initServices();
 
-        await this.eventService.waitForLayoutReady();
-        this.setupFileExplorer();
+        // Obsidian loads plugins before the vault, then fires a vault "create" event for every
+        // existing file and folder. No service may listen to the vault before the layout is ready.
+        await EventService.waitForLayoutReady(this.app);
         this.initServices();
+        this.setupFileExplorer();
         this.initDependentServices();
         this.setupCorePluginWatchers();
 
@@ -97,6 +98,7 @@ export default class FolderLinksPlugin extends Plugin {
             this.app.metadataCache,
             this.eventService
         );
+        this.register(() => this.folderService.dispose());
     }
 
     private setupFileExplorer() {
