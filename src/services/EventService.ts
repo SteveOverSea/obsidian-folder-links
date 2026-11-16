@@ -1,4 +1,4 @@
-import { Plugin, TAbstractFile } from 'obsidian';
+import { App, Plugin, TAbstractFile } from 'obsidian';
 
 export enum EventType {
     Create = 'create',
@@ -13,16 +13,13 @@ export default class EventService {
         this.plugin.registerEvent(this.plugin.app.vault.on(type as any, callback));
     }
 
-    onLayoutReady(callback: () => any) {
-        this.plugin.app.workspace.onLayoutReady(callback);
-    }
-
-    async waitForLayoutReady(): Promise<void> {
-        if (this.plugin.app.workspace.layoutReady) {
+    static waitForLayoutReady(app: App): Promise<void> {
+        const workspace = app.workspace;
+        if (workspace.layoutReady) {
             return Promise.resolve();
         }
         return new Promise((resolve) => {
-            this.onLayoutReady(() => resolve());
+            workspace.onLayoutReady(() => resolve());
         });
     }
 
